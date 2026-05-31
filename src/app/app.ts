@@ -1,4 +1,4 @@
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpHeaders, HttpParams, HttpResponse } from '@angular/common/http';
 import { Component, inject, OnInit, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { MessageService } from 'primeng/api';
@@ -31,23 +31,64 @@ export class App implements OnInit {
     if (!path) {
       return;
     }
-    this.http.post('/api/preservation/sign', {}, { params: { path: path } }).subscribe({
-      next: () => {
-        this.messageService.add({
-          severity: 'success',
-          summary: 'Preservation successful',
-          detail: 'Signed the selected data!',
-        });
-        this.selectedPath.set(null);
-      },
-      error: (error) => {
-        this.messageService.add({
-          severity: 'error',
-          summary: 'Error',
-          detail: 'Failed to sign the selected data (' + error.message + ')',
-        });
-      },
-    });
+    const params = new HttpParams().set('path', path);
+    const headers = new HttpHeaders({ Accept: 'application/octet-stream' });
+    this.http
+      .post<Blob>(
+        '/api/preservation/sign',
+        {},
+        { params: params, headers: headers, observe: 'response', responseType: 'blob' as 'json' },
+      )
+      .subscribe({
+        next: (response: HttpResponse<Blob>) => {
+          const file = response.body;
+          if (!file) {
+            return;
+          }
+          const filename = this.parseFilename(response.headers.get('Content-Disposition') ?? '');
+          const url = URL.createObjectURL(file);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = filename ?? 'download';
+          a.click();
+
+          this.messageService.add({
+            severity: 'success',
+            summary: 'Preservation successful',
+            detail: 'Signed the selected data!',
+          });
+          this.selectedPath.set(null);
+        },
+        error: (error) => {
+          this.messageService.add({
+            severity: 'error',
+            summary: 'Error',
+            detail: 'Failed to sign the selected data (' + error.message + ')',
+          });
+        },
+      });
+  }
+
+  private parseFilename(contentDisposition: string): string | null {
+    // Regex to extract filename (handles quotes and filename*=UTF-8'')
+    const filenameRegex = /filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/;
+    const matches = filenameRegex.exec(contentDisposition);
+
+    if (!matches || matches.length < 1) return null;
+
+    let filename = matches[1].trim();
+
+    // Remove quotes if present
+    if (filename.startsWith('"') && filename.endsWith('"')) {
+      filename = filename.slice(1, -1);
+    }
+
+    // Handle UTF-8 encoded filenames (e.g., filename*=UTF-8''%E6%96%87%E4%BB%B6%E5%90%8D.csv)
+    if (filename.startsWith("UTF-8''")) {
+      filename = decodeURIComponent(filename.replace("UTF-8''", ''));
+    }
+
+    return filename;
   }
 
   protected upload(e: Event): void {
@@ -65,25 +106,21 @@ export class App implements OnInit {
       formData.append(file.webkitRelativePath, file);
     }
 
-    this.http.post('/api/data/upload', formData, { responseType: 'text' }).subscribe({
+    this.http.post('/api/data/upload', formData).subscribe({
       next: (response) => {
-        if (response === 'ok') {
-          this.messageService.add({
-            severity: 'success',
-            summary: 'Upload successful',
-            detail: 'Files uploaded successfully',
-          });
-          this.loadPaths();
-        } else {
-          this.messageService.add({
-            severity: 'error',
-            summary: 'Error',
-            detail: 'Failed to upload files (' + response + ')',
-          });
-        }
+        this.messageService.add({
+          severity: 'success',
+          summary: 'Upload successful',
+          detail: 'Files uploaded successfully',
+        });
+        this.loadPaths();
       },
       error: (error) => {
-        console.error('Network error:', error);
+        this.messageService.add({
+          severity: 'error',
+          summary: 'Error',
+          detail: 'Failed to upload files (' + error.message + ')',
+        });
       },
     });
   }
