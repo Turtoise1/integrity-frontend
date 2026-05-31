@@ -18,15 +18,107 @@ export class App implements OnInit {
   private readonly messageService = inject(MessageService);
   protected paths = signal<string[]>([]);
   protected selectedPath = signal<string | null>(null);
+  protected selectedFilesByDirectoryInput = signal<FileList | null>(null);
+  protected selectedFilesByFileInput = signal<FileList | null>(null);
 
   ngOnInit(): void {
-    document.querySelector('input[name="file"]')?.addEventListener('change', (e) => {
-      this.upload(e);
+    document.querySelector('#directoryInput')?.addEventListener('change', (e) => {
+      const target = e.target as HTMLInputElement;
+      if (target.files) {
+        this.selectedFilesByDirectoryInput.set(target.files);
+      } else {
+        this.selectedFilesByDirectoryInput.set(null);
+      }
+    });
+    document.querySelector('#fileInput')?.addEventListener('change', (e) => {
+      const target = e.target as HTMLInputElement;
+      if (target.files) {
+        this.selectedFilesByFileInput.set(target.files);
+        console.log(this.selectedFilesByFileInput());
+      } else {
+        this.selectedFilesByFileInput.set(null);
+      }
     });
     this.loadPaths();
   }
 
-  protected preserve(): void {
+  protected verify(): void {
+    const path = this.selectedPath();
+    if (!path) {
+      return;
+    }
+    const params = new HttpParams().set('path', path);
+    this.http.post<boolean>('/api/preservation/verify', {}, { params: params }).subscribe({
+      next: (verificationSuccess) => {
+        if (verificationSuccess) {
+          this.messageService.add({
+            severity: 'success',
+            summary: 'Verification',
+            detail: 'Verification successful',
+          });
+        } else {
+          this.messageService.add({
+            severity: 'error',
+            summary: 'Verification failed',
+            detail: 'Some of the embedded signatures could not be verified.',
+          });
+        }
+      },
+      error: () => {
+        this.messageService.add({
+          severity: 'error',
+          summary: 'Verification failed',
+          detail: 'Is the selected document signed?',
+        });
+      },
+    });
+  }
+
+  protected extend(): void {
+    const path = this.selectedPath();
+    if (!path) {
+      return;
+    }
+    const params = new HttpParams().set('path', path);
+    const headers = new HttpHeaders({ Accept: 'application/octet-stream' });
+    this.http
+      .post<Blob>(
+        '/api/preservation/extend',
+        {},
+        { params: params, headers: headers, observe: 'response', responseType: 'blob' as 'json' },
+      )
+      .subscribe({
+        next: (response: HttpResponse<Blob>) => {
+          const file = response.body;
+          if (!file) {
+            return;
+          }
+          const filename = this.parseFilename(response.headers.get('Content-Disposition') ?? '');
+          const url = URL.createObjectURL(file);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = filename ?? 'download';
+          a.click();
+
+          this.messageService.add({
+            severity: 'success',
+            summary: 'Extend successful',
+            detail: 'Extended the selected data!',
+          });
+          this.selectedPath.set(null);
+        },
+        error: (error) => {
+          console.error(error);
+          this.messageService.add({
+            severity: 'error',
+            summary: 'Error',
+            detail: 'Failed to extend the selected data',
+          });
+        },
+      });
+  }
+
+  protected sign(): void {
     const path = this.selectedPath();
     if (!path) {
       return;
@@ -60,10 +152,11 @@ export class App implements OnInit {
           this.selectedPath.set(null);
         },
         error: (error) => {
+          console.error(error);
           this.messageService.add({
             severity: 'error',
             summary: 'Error',
-            detail: 'Failed to sign the selected data (' + error.message + ')',
+            detail: 'Failed to sign the selected data',
           });
         },
       });
@@ -91,9 +184,11 @@ export class App implements OnInit {
     return filename;
   }
 
-  protected upload(e: Event): void {
-    const target = e.target as HTMLInputElement;
-    const files = target.files;
+  protected upload(fromDirectory: boolean): void {
+    const files = fromDirectory
+      ? this.selectedFilesByDirectoryInput()
+      : this.selectedFilesByFileInput();
+    console.log(files);
     if (!files) {
       return;
     }
@@ -102,8 +197,12 @@ export class App implements OnInit {
 
     // Iterate through every file in the folder.
     for (let file of files) {
-      // Use the relative path as the field name to preserve directory structure.
-      formData.append(file.webkitRelativePath, file);
+      if (file.webkitRelativePath) {
+        // Use the relative path as the field name to preserve directory structure.
+        formData.append(file.webkitRelativePath, file);
+      } else {
+        formData.append(file.name, file);
+      }
     }
 
     this.http.post('/api/data/upload', formData).subscribe({

@@ -1,10 +1,24 @@
-<h3>Upload folder</h3>
+<p-toast />
+
+<h3>Upload data</h3>
 <form enctype="multipart/form-data">
-  <input type="file" name="file" multiple webkitdirectory />
+  <div class="action-group">
+    <label for="directoryInput">Select directory</label>
+    <input id="directoryInput" type="file" name="file" multiple webkitdirectory />
+    <p-button (click)="upload(true)">Upload</p-button>
+  </div>
+  <div class="action-group">
+    <label for="fileInput">Select files</label>
+    <input id="fileInput" type="file" name="file" multiple />
+    <p-button (click)="upload(false)">Upload</p-button>
+  </div>
 </form>
 <h3>Preserve uploaded data</h3>
 <form>
-  <p-select [(ngModel)]="selectedPath" [options]="paths()" name="path-select"></p-select>
-  <p-button (click)="preserve()">Preserve</p-button>
+  <div class="action-group">
+    <p-select [(ngModel)]="selectedPath" [options]="paths()" name="path-select"></p-select>
+    <p-button (click)="sign()">Sign (ASiC with XAdES-LTA)</p-button>
+    <p-button (click)="extend()">Extend (ASiC with XAdES to next level)</p-button>
+    <p-button (click)="verify()">Verify signature</p-button>
+  </div>
 </form>
-<p-toast />
