@@ -75,7 +75,7 @@ export class App implements OnInit {
     const headers = new HttpHeaders({ Accept: 'application/octet-stream' });
     this.http
       .post<Blob>(
-        '/api/preservation/er',
+        '/api/evidence/record/create',
         {},
         { params: params, headers: headers, observe: 'response', responseType: 'blob' as 'json' },
       )
@@ -119,7 +119,7 @@ export class App implements OnInit {
     const headers = new HttpHeaders({ Accept: 'application/octet-stream' });
     this.http
       .post<Blob>(
-        '/api/preservation/er/renew/timestamp',
+        '/api/evidence/record/renew/timestamp',
         {},
         { params: params, headers: headers, observe: 'response', responseType: 'blob' as 'json' },
       )
@@ -164,7 +164,7 @@ export class App implements OnInit {
     const headers = new HttpHeaders({ Accept: 'application/octet-stream' });
     this.http
       .post<Blob>(
-        '/api/preservation/er/renew/hashtree',
+        '/api/evidence/record/renew/hashtree',
         {},
         { params: params, headers: headers, observe: 'response', responseType: 'blob' as 'json' },
       )
@@ -205,7 +205,7 @@ export class App implements OnInit {
       return;
     }
     const params = new HttpParams().set('path', path);
-    this.http.post<boolean>('/api/preservation/verify', {}, { params: params }).subscribe({
+    this.http.post<boolean>('/api/signature/verify', {}, { params: params }).subscribe({
       next: (verificationSuccess) => {
         if (verificationSuccess) {
           this.messageService.add({
@@ -240,7 +240,7 @@ export class App implements OnInit {
     const headers = new HttpHeaders({ Accept: 'application/octet-stream' });
     this.http
       .post<Blob>(
-        '/api/preservation/extend',
+        '/api/signature/extend',
         {},
         { params: params, headers: headers, observe: 'response', responseType: 'blob' as 'json' },
       )
@@ -284,7 +284,7 @@ export class App implements OnInit {
     const headers = new HttpHeaders({ Accept: 'application/octet-stream' });
     this.http
       .post<Blob>(
-        '/api/preservation/sign',
+        '/api/signature/create',
         {},
         { params: params, headers: headers, observe: 'response', responseType: 'blob' as 'json' },
       )
