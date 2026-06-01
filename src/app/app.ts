@@ -110,6 +110,40 @@ export class App implements OnInit {
       });
   }
 
+  protected verifyFileByER() {
+    const path = this.selectedPath();
+    const erPath = this.selectedEvidenceRecordPath();
+    if (!path || !erPath) {
+      return;
+    }
+    const params = new HttpParams().set('erPath', erPath).set('filePath', path);
+    this.http.post<boolean>('/api/evidence/record/verify', {}, { params: params }).subscribe({
+      next: (response: boolean) => {
+        if (response) {
+          this.messageService.add({
+            severity: 'success',
+            summary: 'Success',
+            detail: 'File verified by evidence record!',
+          });
+        } else {
+          this.messageService.add({
+            severity: 'error',
+            summary: 'Error',
+            detail: 'Failed to verify file by evidence record',
+          });
+        }
+      },
+      error: (error) => {
+        console.error(error);
+        this.messageService.add({
+          severity: 'error',
+          summary: 'Error',
+          detail: 'Server error',
+        });
+      },
+    });
+  }
+
   protected renewERTimeStamp() {
     const path = this.selectedEvidenceRecordPath();
     if (!path) {
