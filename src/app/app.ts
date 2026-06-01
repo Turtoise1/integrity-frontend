@@ -42,6 +42,50 @@ export class App implements OnInit {
     this.loadPaths();
   }
 
+  protected generateEvidenceRecord(): void {
+    const path = this.selectedPath();
+    if (!path) {
+      return;
+    }
+    const params = new HttpParams().set('path', path);
+    const headers = new HttpHeaders({ Accept: 'application/octet-stream' });
+    this.http
+      .post<Blob>(
+        '/api/preservation/er',
+        {},
+        { params: params, headers: headers, observe: 'response', responseType: 'blob' as 'json' },
+      )
+      .subscribe({
+        next: (response: HttpResponse<Blob>) => {
+          const file = response.body;
+          if (!file) {
+            return;
+          }
+          const filename = this.parseFilename(response.headers.get('Content-Disposition') ?? '');
+          const url = URL.createObjectURL(file);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = filename ?? 'download';
+          a.click();
+
+          this.messageService.add({
+            severity: 'success',
+            summary: 'Success',
+            detail: 'Evidence record generated!',
+          });
+          this.selectedPath.set(null);
+        },
+        error: (error) => {
+          console.error(error);
+          this.messageService.add({
+            severity: 'error',
+            summary: 'Error',
+            detail: 'Failed to generate evidence record',
+          });
+        },
+      });
+  }
+
   protected verify(): void {
     const path = this.selectedPath();
     if (!path) {

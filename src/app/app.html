@@ -16,9 +16,15 @@
 <h3>Preserve uploaded data</h3>
 <form>
   <div class="action-group">
-    <p-select [(ngModel)]="selectedPath" [options]="paths()" name="path-select"></p-select>
+    <p-select
+      [(ngModel)]="selectedPath"
+      [options]="paths()"
+      name="path-select"
+      placeholder="Select path"
+    ></p-select>
     <p-button (click)="sign()">Sign (ASiC with XAdES-LTA)</p-button>
     <p-button (click)="extend()">Extend (ASiC with XAdES to next level)</p-button>
+    <p-button (click)="generateEvidenceRecord()">Generate Evidence Record</p-button>
     <p-button (click)="verify()">Verify signature</p-button>
   </div>
 </form>
