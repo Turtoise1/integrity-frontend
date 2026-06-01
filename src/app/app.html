@@ -1,6 +1,6 @@
 <p-toast />
 
-<h3>Upload data</h3>
+<h2>Upload data</h2>
 <form enctype="multipart/form-data">
   <div class="action-group">
     <label for="directoryInput">Select directory</label>
@@ -13,18 +13,58 @@
     <p-button (click)="upload(false)">Upload</p-button>
   </div>
 </form>
-<h3>Preserve uploaded data</h3>
-<form>
-  <div class="action-group">
-    <p-select
-      [(ngModel)]="selectedPath"
-      [options]="paths()"
-      name="path-select"
-      placeholder="Select path"
-    ></p-select>
-    <p-button (click)="sign()">Sign (ASiC with XAdES-LTA)</p-button>
-    <p-button (click)="extend()">Extend (ASiC with XAdES to next level)</p-button>
-    <p-button (click)="generateEvidenceRecord()">Generate Evidence Record</p-button>
-    <p-button (click)="verify()">Verify signature</p-button>
-  </div>
-</form>
+<h2>Preservation</h2>
+<h3>Advanced electronic signatures</h3>
+<div class="action-group">
+  <p-select
+    [(ngModel)]="selectedPath"
+    [options]="paths()"
+    name="path-select"
+    placeholder="Select file path"
+  ></p-select>
+  <p-button (click)="sign()">Sign (ASiC with XAdES-LTA)</p-button>
+</div>
+<div class="action-group">
+  <p-select
+    [(ngModel)]="selectedSignaturePath"
+    [options]="signaturePaths()"
+    name="path-select"
+    placeholder="Select file path"
+  ></p-select>
+  <p-button (click)="extend()">Extend (ASiC with XAdES to next level)</p-button>
+  <p-button (click)="verify()">Verify signature</p-button>
+</div>
+<h3>Evidence Records</h3>
+<div class="action-group">
+  <p-select
+    [(ngModel)]="selectedPath"
+    [options]="paths()"
+    name="path-select"
+    placeholder="Select file path"
+  ></p-select>
+  <p-button (click)="generateEvidenceRecord()">Generate Evidence Record</p-button>
+</div>
+<div class="action-group">
+  <p-select
+    [(ngModel)]="selectedEvidenceRecordPath"
+    [options]="erPaths()"
+    name="path-select"
+    placeholder="Select evidence record path"
+  ></p-select>
+  <p-button (click)="renewERTimeStamp()">Renew Evidence Record Timestamp</p-button>
+</div>
+<div class="action-group">
+  <p-select
+    [(ngModel)]="selectedPath"
+    [options]="paths()"
+    name="path-select"
+    placeholder="Select file path"
+  ></p-select>
+  <p-select
+    [(ngModel)]="selectedEvidenceRecordPath"
+    [options]="erPaths()"
+    name="path-select"
+    placeholder="Select evidence record path"
+  ></p-select>
+  <p-button (click)="renewERHashTree()">Renew Evidence Record Hash Tree</p-button>
+</div>

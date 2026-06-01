@@ -1,5 +1,5 @@
 import { HttpClient, HttpHeaders, HttpParams, HttpResponse } from '@angular/common/http';
-import { Component, inject, OnInit, signal } from '@angular/core';
+import { Component, effect, inject, OnInit, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { MessageService } from 'primeng/api';
 import { Button } from 'primeng/button';
@@ -16,10 +16,33 @@ import { ToastModule } from 'primeng/toast';
 export class App implements OnInit {
   private readonly http = inject(HttpClient);
   private readonly messageService = inject(MessageService);
+
   protected paths = signal<string[]>([]);
+  protected signaturePaths = signal<string[]>([]);
+  protected erPaths = signal<string[]>([]);
+
   protected selectedPath = signal<string | null>(null);
+  protected selectedSignaturePath = signal<string | null>(null);
+  protected selectedEvidenceRecordPath = signal<string | null>(null);
+
   protected selectedFilesByDirectoryInput = signal<FileList | null>(null);
   protected selectedFilesByFileInput = signal<FileList | null>(null);
+
+  constructor() {
+    effect(() => {
+      const paths = this.paths();
+      this.signaturePaths.set(
+        paths.filter(
+          (p) =>
+            p.endsWith('.sce') ||
+            p.endsWith('.asice') ||
+            p.endsWith('.asics') ||
+            p.endsWith('.scs'),
+        ),
+      );
+      this.erPaths.set(paths.filter((p) => p.endsWith('.ers')));
+    });
+  }
 
   ngOnInit(): void {
     document.querySelector('#directoryInput')?.addEventListener('change', (e) => {
@@ -29,15 +52,16 @@ export class App implements OnInit {
       } else {
         this.selectedFilesByDirectoryInput.set(null);
       }
+      console.log('Selected files:', this.selectedFilesByDirectoryInput());
     });
     document.querySelector('#fileInput')?.addEventListener('change', (e) => {
       const target = e.target as HTMLInputElement;
       if (target.files) {
         this.selectedFilesByFileInput.set(target.files);
-        console.log(this.selectedFilesByFileInput());
       } else {
         this.selectedFilesByFileInput.set(null);
       }
+      console.log('Selected files:', this.selectedFilesByFileInput());
     });
     this.loadPaths();
   }
@@ -86,8 +110,97 @@ export class App implements OnInit {
       });
   }
 
+  protected renewERTimeStamp() {
+    const path = this.selectedEvidenceRecordPath();
+    if (!path) {
+      return;
+    }
+    const params = new HttpParams().set('erPath', path);
+    const headers = new HttpHeaders({ Accept: 'application/octet-stream' });
+    this.http
+      .post<Blob>(
+        '/api/preservation/er/renew/timestamp',
+        {},
+        { params: params, headers: headers, observe: 'response', responseType: 'blob' as 'json' },
+      )
+      .subscribe({
+        next: (response: HttpResponse<Blob>) => {
+          const file = response.body;
+          if (!file) {
+            return;
+          }
+          const filename = this.parseFilename(response.headers.get('Content-Disposition') ?? '');
+          const url = URL.createObjectURL(file);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = filename ?? 'download';
+          a.click();
+
+          this.messageService.add({
+            severity: 'success',
+            summary: 'Success',
+            detail: 'Evidence record time stamp renewed!',
+          });
+          this.selectedPath.set(null);
+        },
+        error: (error) => {
+          console.error(error);
+          this.messageService.add({
+            severity: 'error',
+            summary: 'Error',
+            detail: 'Failed to renew evidence record time stamp',
+          });
+        },
+      });
+  }
+
+  protected renewERHashTree() {
+    const erPath = this.selectedEvidenceRecordPath();
+    const filePath = this.selectedPath();
+    if (!erPath || !filePath) {
+      return;
+    }
+    const params = new HttpParams().set('erPath', erPath).set('filePath', filePath);
+    const headers = new HttpHeaders({ Accept: 'application/octet-stream' });
+    this.http
+      .post<Blob>(
+        '/api/preservation/er/renew/hashtree',
+        {},
+        { params: params, headers: headers, observe: 'response', responseType: 'blob' as 'json' },
+      )
+      .subscribe({
+        next: (response: HttpResponse<Blob>) => {
+          const file = response.body;
+          if (!file) {
+            return;
+          }
+          const filename = this.parseFilename(response.headers.get('Content-Disposition') ?? '');
+          const url = URL.createObjectURL(file);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = filename ?? 'download';
+          a.click();
+
+          this.messageService.add({
+            severity: 'success',
+            summary: 'Success',
+            detail: 'Evidence record hash tree renewed!',
+          });
+          this.selectedPath.set(null);
+        },
+        error: (error) => {
+          console.error(error);
+          this.messageService.add({
+            severity: 'error',
+            summary: 'Error',
+            detail: 'Failed to renew evidence record hash tree',
+          });
+        },
+      });
+  }
+
   protected verify(): void {
-    const path = this.selectedPath();
+    const path = this.selectedSignaturePath();
     if (!path) {
       return;
     }
@@ -119,7 +232,7 @@ export class App implements OnInit {
   }
 
   protected extend(): void {
-    const path = this.selectedPath();
+    const path = this.selectedSignaturePath();
     if (!path) {
       return;
     }
@@ -193,7 +306,14 @@ export class App implements OnInit {
             summary: 'Preservation successful',
             detail: 'Signed the selected data!',
           });
-          this.selectedPath.set(null);
+          const path = this.selectedPath();
+          if (path && !this.paths().includes(path)) {
+            this.selectedPath.set(null);
+          }
+          const erPath = this.selectedEvidenceRecordPath();
+          if (erPath && !this.paths().includes(erPath)) {
+            this.selectedEvidenceRecordPath.set(null);
+          }
         },
         error: (error) => {
           console.error(error);
