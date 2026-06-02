@@ -1,6 +1,7 @@
 <p-toast />
 
 <h2>Upload data</h2>
+
 <form enctype="multipart/form-data">
   <div class="action-group">
     <label for="directoryInput">Select directory</label>
@@ -13,7 +14,9 @@
     <p-button (click)="upload(false)">Upload</p-button>
   </div>
 </form>
+
 <h2>Preservation</h2>
+
 <h3>Advanced electronic signatures</h3>
 <div class="action-group">
   <p-select
@@ -32,8 +35,9 @@
     placeholder="Select signature file path"
   ></p-select>
   <p-button (click)="extend()">Extend (ASiC with XAdES to next level)</p-button>
-  <p-button (click)="verify()">Verify signature</p-button>
+  <p-button (click)="verifySignature()">Verify signature</p-button>
 </div>
+
 <h3>Evidence Records</h3>
 <div class="action-group">
   <p-select
@@ -68,4 +72,24 @@
   ></p-select>
   <p-button (click)="renewERHashTree()">Renew Evidence Record Hash Tree</p-button>
   <p-button (click)="verifyFileByER()">Verify by Evidence Record</p-button>
+</div>
+
+<h3>Distributed System</h3>
+<div class="action-group">
+  <p-select
+    [(ngModel)]="selectedPath"
+    [options]="paths()"
+    name="path-select"
+    placeholder="Select file path"
+  ></p-select>
+  <p-button (click)="distribute()">Distribute</p-button>
+</div>
+<div class="action-group">
+  <p-select
+    [(ngModel)]="selectedDistributedPath"
+    [options]="distributedPaths()"
+    name="path-select"
+    placeholder="Select distributed path"
+  ></p-select>
+  <p-button (click)="retrieveDistributedData()">Retrieve Distributed Data</p-button>
 </div>

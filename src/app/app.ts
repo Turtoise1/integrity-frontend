@@ -5,6 +5,7 @@ import { MessageService } from 'primeng/api';
 import { Button } from 'primeng/button';
 import { Select } from 'primeng/select';
 import { ToastModule } from 'primeng/toast';
+import { firstValueFrom } from 'rxjs';
 
 @Component({
   selector: 'app-root',
@@ -20,10 +21,12 @@ export class App implements OnInit {
   protected paths = signal<string[]>([]);
   protected signaturePaths = signal<string[]>([]);
   protected erPaths = signal<string[]>([]);
+  protected distributedPaths = signal<string[]>([]);
 
   protected selectedPath = signal<string | null>(null);
   protected selectedSignaturePath = signal<string | null>(null);
   protected selectedEvidenceRecordPath = signal<string | null>(null);
+  protected selectedDistributedPath = signal<string | null>(null);
 
   protected selectedFilesByDirectoryInput = signal<FileList | null>(null);
   protected selectedFilesByFileInput = signal<FileList | null>(null);
@@ -64,6 +67,7 @@ export class App implements OnInit {
       console.log('Selected files:', this.selectedFilesByFileInput());
     });
     this.loadPaths();
+    this.loadDistributedPaths();
   }
 
   protected generateEvidenceRecord(): void {
@@ -233,7 +237,79 @@ export class App implements OnInit {
       });
   }
 
-  protected verify(): void {
+  protected distribute(): void {
+    const path = this.selectedPath();
+    if (!path) {
+      return;
+    }
+    const params = new HttpParams().set('path', path);
+    this.http
+      .post<boolean>('/api/distributed/system/distribute', {}, { params: params })
+      .subscribe({
+        next: () => {
+          this.messageService.add({
+            severity: 'success',
+            summary: 'Distribution',
+            detail: 'Data distributed successfully',
+          });
+          this.loadDistributedPaths();
+        },
+        error: (error) => {
+          console.error(error);
+          this.messageService.add({
+            severity: 'error',
+            summary: 'Error',
+            detail: 'Failed to distribute data',
+          });
+        },
+      });
+  }
+
+  protected retrieveDistributedData(): void {
+    const path = this.selectedDistributedPath();
+    if (!path) {
+      return;
+    }
+    const params = new HttpParams().set('path', path);
+    const headers = new HttpHeaders({ Accept: 'application/octet-stream' });
+    this.http
+      .get<Blob>('/api/distributed/system/retrieve', {
+        params: params,
+        headers: headers,
+        observe: 'response',
+        responseType: 'blob' as 'json',
+      })
+      .subscribe({
+        next: (response) => {
+          const file = response.body;
+          if (!file) {
+            return;
+          }
+          const filename = this.parseFilename(response.headers.get('Content-Disposition') ?? '');
+          const url = URL.createObjectURL(file);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = filename ?? 'download';
+          a.click();
+
+          this.messageService.add({
+            severity: 'success',
+            summary: 'Success',
+            detail: 'Retrieved the selected data!',
+          });
+        },
+        error: (error) => {
+          console.error(error);
+          this.messageService.add({
+            severity: 'error',
+            summary: 'Error',
+            detail: 'Failed to retrieve data',
+          });
+        },
+      });
+  }
+
+  protected verifySignature(): void {
     const path = this.selectedSignaturePath();
     if (!path) {
       return;
@@ -426,6 +502,14 @@ export class App implements OnInit {
     this.http.get<string[]>('/api/data/list/paths').subscribe({
       next: (paths) => {
         this.paths.set(paths);
+      },
+    });
+  }
+
+  private loadDistributedPaths() {
+    this.http.get<string[]>('/api/distributed/system/list/data').subscribe({
+      next: (paths) => {
+        this.distributedPaths.set(paths);
       },
     });
   }
