@@ -135,6 +135,14 @@ export class App implements OnInit {
     });
   }
 
+  private showWarning(message: string): void {
+    this.messageService.add({
+      severity: 'warn',
+      summary: 'Warning',
+      detail: message,
+    });
+  }
+
   private loadPaths(): void {
     this.http.get<string[]>('/api/data/list/paths').subscribe({
       next: (paths) => this.paths.set(paths),
@@ -153,7 +161,10 @@ export class App implements OnInit {
 
   protected generateEvidenceRecord(): void {
     const path = this.selectedPath();
-    if (!path) return;
+    if (!path) {
+      this.showWarning('Please select a file first');
+      return;
+    }
 
     const params = new HttpParams().set('path', path);
     const headers = new HttpHeaders({ Accept: 'application/octet-stream' });
@@ -184,7 +195,10 @@ export class App implements OnInit {
   protected verifyFileByER(): void {
     const path = this.selectedPath();
     const erPath = this.selectedEvidenceRecordPath();
-    if (!path || !erPath) return;
+    if (!path || !erPath) {
+      this.showWarning('Please select both a file and an evidence record');
+      return;
+    }
 
     const params = new HttpParams().set('erPath', erPath).set('filePath', path);
 
@@ -210,7 +224,10 @@ export class App implements OnInit {
 
   protected renewERTimeStamp(): void {
     const path = this.selectedEvidenceRecordPath();
-    if (!path) return;
+    if (!path) {
+      this.showWarning('Please select an evidence record first');
+      return;
+    }
 
     const params = new HttpParams().set('erPath', path);
     const headers = new HttpHeaders({ Accept: 'application/octet-stream' });
@@ -241,7 +258,10 @@ export class App implements OnInit {
   protected renewERHashTree(): void {
     const erPath = this.selectedEvidenceRecordPath();
     const filePath = this.selectedPath();
-    if (!erPath || !filePath) return;
+    if (!erPath || !filePath) {
+      this.showWarning('Please select both an evidence record and a file');
+      return;
+    }
 
     const params = new HttpParams().set('erPath', erPath).set('filePath', filePath);
     const headers = new HttpHeaders({ Accept: 'application/octet-stream' });
@@ -275,7 +295,10 @@ export class App implements OnInit {
 
   protected distribute(): void {
     const path = this.selectedPath();
-    if (!path) return;
+    if (!path) {
+      this.showWarning('Please select a file first');
+      return;
+    }
 
     const params = new HttpParams().set('path', path);
 
@@ -297,7 +320,10 @@ export class App implements OnInit {
 
   protected retrieveDistributedData(): void {
     const path = this.selectedDistributedPath();
-    if (!path) return;
+    if (!path) {
+      this.showWarning('Please select distributed data first');
+      return;
+    }
 
     const params = new HttpParams().set('path', path);
     const headers = new HttpHeaders({ Accept: 'application/octet-stream' });
@@ -324,7 +350,10 @@ export class App implements OnInit {
 
   protected verifySignature(): void {
     const path = this.selectedSignaturePath();
-    if (!path) return;
+    if (!path) {
+      this.showWarning('Please select a signature file first');
+      return;
+    }
 
     const params = new HttpParams().set('path', path);
 
@@ -350,7 +379,10 @@ export class App implements OnInit {
 
   protected extend(): void {
     const path = this.selectedSignaturePath();
-    if (!path) return;
+    if (!path) {
+      this.showWarning('Please select a signature file first');
+      return;
+    }
 
     const params = new HttpParams().set('path', path);
     const headers = new HttpHeaders({ Accept: 'application/octet-stream' });
@@ -380,7 +412,10 @@ export class App implements OnInit {
 
   protected sign(): void {
     const path = this.selectedPath();
-    if (!path) return;
+    if (!path) {
+      this.showWarning('Please select a file first');
+      return;
+    }
 
     const params = new HttpParams().set('path', path);
     const headers = new HttpHeaders({ Accept: 'application/octet-stream' });
@@ -425,8 +460,10 @@ export class App implements OnInit {
       ? this.selectedFilesByDirectoryInput()
       : this.selectedFilesByFileInput();
 
-    console.log(files);
-    if (!files) return;
+    if (!files) {
+      this.showWarning('Please select files to upload first');
+      return;
+    }
 
     const formData = new FormData();
 
