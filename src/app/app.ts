@@ -5,6 +5,7 @@ import { MessageService } from 'primeng/api';
 import { Button } from 'primeng/button';
 import { Select } from 'primeng/select';
 import { ToastModule } from 'primeng/toast';
+import { AnchorVerificationResult } from './interfaces/verification';
 
 // ============================================================================
 // Constants
@@ -41,12 +42,14 @@ export class App implements OnInit {
   protected signaturePaths = signal<string[]>([]);
   protected erPaths = signal<string[]>([]);
   protected distributedPaths = signal<string[]>([]);
+  protected blockchainPaths = signal<string[]>([]);
 
   // Selected items
   protected selectedPath = signal<string | null>(null);
   protected selectedSignaturePath = signal<string | null>(null);
   protected selectedEvidenceRecordPath = signal<string | null>(null);
   protected selectedDistributedPath = signal<string | null>(null);
+  protected selectedBlockchainPath = signal<string | null>(null);
 
   // File inputs
   protected selectedFilesByDirectoryInput = signal<FileList | null>(null);
@@ -70,6 +73,7 @@ export class App implements OnInit {
     this.setupFileInputListeners();
     this.loadPaths();
     this.loadDistributedPaths();
+    this.loadBlockchainPaths();
   }
 
   // --------------------------------------------------------------------------
@@ -152,6 +156,12 @@ export class App implements OnInit {
   private loadDistributedPaths(): void {
     this.http.get<string[]>('/api/distributed/system/list/data').subscribe({
       next: (paths) => this.distributedPaths.set(paths),
+    });
+  }
+
+  private loadBlockchainPaths(): void {
+    this.http.get<string[]>('/api/blockchain/list/data').subscribe({
+      next: (paths) => this.blockchainPaths.set(paths),
     });
   }
 
@@ -344,6 +354,77 @@ export class App implements OnInit {
       });
   }
 
+  // --------------------------------------------------------------------------
+  // Distributed System Actions
+  // --------------------------------------------------------------------------
+
+  protected blockchainAnchor(): void {
+    const path = this.selectedPath();
+    if (!path) {
+      this.showWarning('Please select a file first');
+      return;
+    }
+
+    const params = new HttpParams().set('path', path);
+
+    this.http
+      .post<string>('/api/blockchain/anchor', {}, { params, responseType: 'text' as 'json' })
+      .subscribe({
+        next: (tx) => {
+          this.messageService.add({
+            severity: 'success',
+            summary: 'Success',
+            detail: 'Data successfully anchored on blockchain transaction ' + tx,
+          });
+          this.loadBlockchainPaths();
+        },
+        error: (error) => {
+          console.error(error);
+          this.showError('Failed to anchor data on blockchain');
+        },
+      });
+  }
+
+  protected verifyFromBlockchain(): void {
+    const path = this.selectedBlockchainPath();
+    if (!path) {
+      this.showWarning('Please select blockchain anchored data first');
+      return;
+    }
+
+    const params = new HttpParams().set('path', path);
+    const headers = new HttpHeaders({ Accept: 'application/json' });
+
+    this.http
+      .get<AnchorVerificationResult>('/api/blockchain/verify', {
+        params,
+        headers,
+      })
+      .subscribe({
+        next: (res) => {
+          if (res.match) {
+            this.messageService.add({
+              summary: 'Verification successfull',
+              detail: 'Hash matches blockchain anchor!',
+            });
+          } else {
+            this.messageService.add({
+              severity: 'error',
+              summary: 'Verification failed',
+              detail:
+                "Hashes don't match! File hash: " +
+                res.currentHash +
+                ', blockchain hash: ' +
+                res.storedHash,
+            });
+          }
+        },
+        error: (error) => {
+          console.error(error);
+          this.showError('Failed to verify data');
+        },
+      });
+  }
   // --------------------------------------------------------------------------
   // Signature Actions
   // --------------------------------------------------------------------------

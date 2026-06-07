@@ -93,3 +93,23 @@
   ></p-select>
   <p-button (click)="retrieveDistributedData()">Retrieve Distributed Data</p-button>
 </div>
+
+<h3>Blockchain</h3>
+<div class="action-group">
+  <p-select
+    [(ngModel)]="selectedPath"
+    [options]="paths()"
+    name="path-select"
+    placeholder="Select file path"
+  ></p-select>
+  <p-button (click)="blockchainAnchor()">Anchor on blockchain</p-button>
+</div>
+<div class="action-group">
+  <p-select
+    [(ngModel)]="selectedBlockchainPath"
+    [options]="blockchainPaths()"
+    name="path-select"
+    placeholder="Select path of blockchain anchored file"
+  ></p-select>
+  <p-button (click)="verifyFromBlockchain()">Verify</p-button>
+</div>
