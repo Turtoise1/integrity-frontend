@@ -549,7 +549,10 @@ export class App implements OnInit {
     const formData = new FormData();
 
     for (const file of files) {
-      const key = file.webkitRelativePath ?? file.name;
+      let key = file.webkitRelativePath;
+      if (!key || key.trim().length === 0) {
+        key = file.name;
+      }
       formData.append(key, file);
     }
 
